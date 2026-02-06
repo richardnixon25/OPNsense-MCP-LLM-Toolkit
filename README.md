@@ -1,140 +1,99 @@
-# OPNsense User Guide
+# OPNsense LLM Assistant
 
-A comprehensive, professionally-styled PDF guide for OPNsense firewall administration. Designed as a reference for both human administrators and LLM/AI agents.
+Configure your OPNsense firewall using natural language with any MCP-compatible LLM.
 
-![OPNsense Logo](assets/opnsense-logo.png)
+## What This Is
 
-## Overview
+An integrated package that lets you use Claude, Cursor, OpenCode, or other LLMs to configure OPNsense firewalls through conversation. Instead of clicking through the web UI, just tell your LLM what you want:
 
-This guide covers OPNsense firewall configuration from initial setup through advanced topics like High Availability, IDS/IPS, and VPN configurations. It's generated programmatically using Python and ReportLab, producing a consistent, version-controlled document.
-
-**Features:**
-- 78 pages of comprehensive documentation
-- Official OPNsense branding and color scheme
-- Custom network diagrams and illustrations
-- Quick reference appendices
-- pf syntax guide
-- REST API documentation
-
-## Table of Contents
-
-1. Introduction & Overview
-2. Installation & Initial Setup
-3. Dashboard & System Configuration
-4. Interfaces & Networking
-5. Firewall Rules & NAT
-6. VPN (IPsec, OpenVPN, WireGuard)
-7. DNS & Unbound
-8. Intrusion Detection (Suricata)
-9. Traffic Shaping & QoS
-10. High Availability (CARP)
-11. Additional Services
-12. Troubleshooting
-13. Best Practices
-14. Backup & Recovery
-15. Certificates & PKI
-
-**Appendices:**
-- A: Quick Reference (defaults, ports, CLI commands)
-- B: pf Syntax Reference
-- C: REST API Reference
+```
+"Create a guest VLAN that can access the internet but not my LAN"
+"Forward port 443 to my web server at 192.168.1.50"  
+"Show me all firewall rules blocking traffic"
+```
 
 ## Quick Start
 
-### Prerequisites
+1. **Get API credentials** from OPNsense (System > Access > Users > API keys)
+2. **Add MCP server** to your LLM client config:
+   ```json
+   {
+     "mcpServers": {
+       "opnsense": {
+         "command": "npx",
+         "args": ["opnsense-mcp-server"],
+         "env": {
+           "OPNSENSE_HOST": "https://192.168.1.1",
+           "OPNSENSE_API_KEY": "your_key",
+           "OPNSENSE_API_SECRET": "your_secret",
+           "OPNSENSE_VERIFY_SSL": "false"
+         }
+       }
+     }
+   }
+   ```
+3. **Add the system prompt** from `llm/SYSTEM_PROMPT.md` to your LLM's instructions
+4. **Start chatting** - "Test my OPNsense connection"
 
-```bash
-# Python 3.8+
-pip install reportlab
+**Full setup instructions:** [SETUP.md](SETUP.md)
+
+## What's Included
+
+| File | Purpose |
+|------|---------|
+| `llm/SYSTEM_PROMPT.md` | Copy-paste prompt for your LLM |
+| `llm/OPNSENSE_KNOWLEDGE.md` | Detailed reference (MCP tools, workflows, patterns) |
+| `docs/OPNsense_User_Guide.pdf` | 78-page human-readable guide |
+| `SETUP.md` | Step-by-step setup instructions |
+
+## How It Works
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   You       │────▶│   LLM       │────▶│  OPNsense   │
+│  (natural   │     │ (with MCP   │     │  (firewall) │
+│  language)  │◀────│  tools)     │◀────│             │
+└─────────────┘     └─────────────┘     └─────────────┘
+                          │
+                    Knowledge from
+                    this repo
 ```
 
-### Generate the PDF
+The LLM uses:
+- **MCP tools** to execute commands on OPNsense
+- **Knowledge files** to understand OPNsense concepts and best practices
+- **System prompt** to follow safety guidelines (backup first, explain changes, etc.)
 
-```bash
-python3 src/opnsense_user_guide.py
-```
+## Requirements
 
-Output: `output/OPNsense_User_Guide.pdf`
+- OPNsense firewall with API access enabled
+- LLM client with MCP support (Claude Desktop, Cursor, OpenCode, Continue.dev)
+- Node.js (for npx)
 
 ## Project Structure
 
 ```
 opnsense-user-guide/
 ├── README.md
-├── LICENSE
-├── assets/
-│   ├── opnsense-logo.png    # Official logo (600x177)
-│   └── opnsense-logo.svg    # Source SVG
-├── src/
-│   └── opnsense_user_guide.py   # PDF generator
-└── output/
-    └── OPNsense_User_Guide.pdf  # Generated PDF
+├── SETUP.md                 # Setup instructions
+├── llm/
+│   ├── SYSTEM_PROMPT.md     # LLM instructions
+│   └── OPNSENSE_KNOWLEDGE.md # Reference material
+├── docs/
+│   └── OPNsense_User_Guide.pdf
+└── src/
+    └── opnsense_user_guide.py  # PDF generator
 ```
 
-## Customization
+## Related
 
-### Colors
-
-The guide uses official OPNsense branding. Colors are defined at the top of `opnsense_user_guide.py`:
-
-```python
-OPNSENSE_ORANGE = HexColor("#FF6900")  # Primary brand color
-OPNSENSE_DARK = HexColor("#2C3E50")    # Headers, text
-OPNSENSE_BLUE = HexColor("#3498DB")    # Links, highlights
-OPNSENSE_GREEN = HexColor("#27AE60")   # Success, LAN
-OPNSENSE_RED = HexColor("#E74C3C")     # Warnings, alerts
-```
-
-### Adding Content
-
-Content is organized in the `build_content()` function. Each chapter follows this pattern:
-
-```python
-# Chapter heading
-story.append(chapter_heading("Chapter Title"))
-
-# Section
-story.append(section_heading("Section Name"))
-story.append(Paragraph("Content here...", styles["BodyText"]))
-
-# Code blocks
-story.append(code_block("configctl webgui restart"))
-
-# Tips and warnings
-story.append(tip_box("Pro tip content"))
-story.append(warning_box("Warning content"))
-```
-
-## Use Cases
-
-### For Administrators
-- Quick reference during firewall configuration
-- Training material for new team members
-- Standardized documentation for compliance
-
-### For LLM/AI Agents
-- Structured reference for OPNsense-related queries
-- Consistent formatting for information extraction
-- Comprehensive coverage of CLI commands and API endpoints
-
-## Related Projects
-
-- [OPNsense MCP Server](https://github.com/vespo92/OPNsenseMCP) - MCP server for OPNsense API integration
-- [OPNsense](https://opnsense.org/) - Official OPNsense project
+- [OPNsense MCP Server](https://github.com/vespo92/OPNsenseMCP) - The MCP server that provides the tools
+- [OPNsense](https://opnsense.org/) - The firewall itself
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
-
-## Contributing
-
-Contributions welcome! Please:
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
-For content corrections or additions, please open an issue first to discuss the changes.
+MIT
 
 ---
 
-*This guide is not officially affiliated with the OPNsense project. OPNsense is a registered trademark of Deciso B.V.*
+*Not affiliated with the OPNsense project. OPNsense is a trademark of Deciso B.V.*

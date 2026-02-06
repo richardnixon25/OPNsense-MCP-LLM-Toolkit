@@ -615,7 +615,7 @@ def create_styled_table(data, col_widths=None):
 def build_document():
     """Build the complete PDF document"""
 
-    output_path = os.path.join(PROJECT_ROOT, "output", "OPNsense_User_Guide.pdf")
+    output_path = os.path.join(PROJECT_ROOT, "docs", "OPNsense_User_Guide.pdf")
     doc = SimpleDocTemplate(
         output_path,
         pagesize=letter,
