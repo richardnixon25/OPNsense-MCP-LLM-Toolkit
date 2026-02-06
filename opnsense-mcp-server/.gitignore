@@ -1,0 +1,128 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.js
+*.js.map
+*.d.ts
+*.tsbuildinfo
+!jest.config.js
+!rollup.config.js
+!drizzle.config.js
+
+# Environment
+.env
+.env.*
+!.env.example
+!.env.iac-example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Testing
+tests/
+test/
+coverage/
+.nyc_output/
+test-sse.js
+
+# Internal working documents
+.internal/
+
+# Archive directory
+.archive/
+
+# Temporary files
+*.tmp
+*.temp
+TODELETE/
+temp/
+tmp/
+
+# Backup files
+*.backup
+*.bak
+backup/
+
+# Cache
+.cache/
+.npm/
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+
+# OS
+Thumbs.db
+Desktop.ini
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Misc
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Files containing API keys
+create-dmz-rules.ts
+create-rpc-rules.ts
+debug-api.ts
+test-firewall-api.ts
+test-mcp-fix.ts
+
+# MCP configuration (contains API keys)
+.mcp.json
+mcp.json
+*.mcp.json
+claude_desktop_config.json
+
+# Credentials and secrets
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+credentials.json
+secrets.json
+**/secrets/
+**/credentials/
+*.secret
+.secrets
+.credentials
+
+# API keys in config files
+config.local.json
+config.production.json
+*.local.json
+
+# SSH keys
+id_rsa*
+id_ed25519*
+*.pub
+
+# Token files
+.token
+*.token
+tokens.json
+
+# Experimental/consolidated code
+consolidated/

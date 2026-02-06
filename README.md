@@ -1,27 +1,34 @@
-# OPNsense LLM Assistant
+# OPNsense MCP/LLM Toolkit
 
 Configure your OPNsense firewall using natural language with any MCP-compatible LLM.
 
 ## What This Is
 
-An integrated package that lets you use Claude, Cursor, OpenCode, or other LLMs to configure OPNsense firewalls through conversation. Instead of clicking through the web UI, just tell your LLM what you want:
+A complete toolkit that lets you use Claude, Cursor, OpenCode, or other LLMs to configure OPNsense firewalls through conversation. Includes an enhanced MCP server with additional tools for WireGuard, PF states, gateways, and aliases.
 
 ```
 "Create a guest VLAN that can access the internet but not my LAN"
 "Forward port 443 to my web server at 192.168.1.50"  
 "Show me all firewall rules blocking traffic"
+"Check WireGuard tunnel status"
 ```
 
 ## Quick Start
 
 1. **Get API credentials** from OPNsense (System > Access > Users > API keys)
-2. **Add MCP server** to your LLM client config:
+2. **Install and run the MCP server**:
+   ```bash
+   cd opnsense-mcp-server
+   npm install
+   npm run build
+   ```
+3. **Add MCP server** to your LLM client config:
    ```json
    {
      "mcpServers": {
        "opnsense": {
-         "command": "npx",
-         "args": ["opnsense-mcp-server"],
+         "command": "node",
+         "args": ["/path/to/opnsense-mcp-server/dist/index.js"],
          "env": {
            "OPNSENSE_HOST": "https://192.168.1.1",
            "OPNSENSE_API_KEY": "your_key",
@@ -32,19 +39,29 @@ An integrated package that lets you use Claude, Cursor, OpenCode, or other LLMs 
      }
    }
    ```
-3. **Add the system prompt** from `llm/SYSTEM_PROMPT.md` to your LLM's instructions
-4. **Start chatting** - "Test my OPNsense connection"
+4. **Add the system prompt** from `llm/SYSTEM_PROMPT.md` to your LLM's instructions
+5. **Start chatting** - "Test my OPNsense connection"
 
 **Full setup instructions:** [SETUP.md](SETUP.md)
 
 ## What's Included
 
-| File | Purpose |
-|------|---------|
+| Directory/File | Purpose |
+|----------------|---------|
+| `opnsense-mcp-server/` | Enhanced MCP server with WireGuard, PF states, gateway, alias tools |
 | `llm/SYSTEM_PROMPT.md` | Copy-paste prompt for your LLM |
 | `llm/OPNSENSE_KNOWLEDGE.md` | Detailed reference (MCP tools, workflows, patterns) |
 | `docs/OPNsense_User_Guide.pdf` | 78-page human-readable guide |
 | `SETUP.md` | Step-by-step setup instructions |
+
+## MCP Server Features
+
+Enhanced from the base opnsense-mcp-server with:
+- **WireGuard tools** - Tunnel status, peer management
+- **PF state tools** - View/clear packet filter states
+- **Gateway tools** - Monitor gateway status and failover
+- **Alias tools** - Manage firewall aliases
+- **SSH support** - Direct CLI access for advanced operations
 
 ## How It Works
 
@@ -55,12 +72,12 @@ An integrated package that lets you use Claude, Cursor, OpenCode, or other LLMs 
 │  language)  │◀────│  tools)     │◀────│             │
 └─────────────┘     └─────────────┘     └─────────────┘
                           │
-                    Knowledge from
-                    this repo
+                    MCP Server +
+                    Knowledge Base
 ```
 
 The LLM uses:
-- **MCP tools** to execute commands on OPNsense
+- **MCP tools** to execute commands on OPNsense (API + SSH)
 - **Knowledge files** to understand OPNsense concepts and best practices
 - **System prompt** to follow safety guidelines (backup first, explain changes, etc.)
 
@@ -68,27 +85,26 @@ The LLM uses:
 
 - OPNsense firewall with API access enabled
 - LLM client with MCP support (Claude Desktop, Cursor, OpenCode, Continue.dev)
-- Node.js (for npx)
+- Node.js 18+
 
 ## Project Structure
 
 ```
-opnsense-user-guide/
+OPNsense-MCP-LLM-Toolkit/
 ├── README.md
-├── SETUP.md                 # Setup instructions
+├── SETUP.md                     # Setup instructions
+├── opnsense-mcp-server/         # Enhanced MCP server
+│   ├── src/                     # Server source code
+│   ├── package.json
+│   └── README.md                # Server-specific docs
 ├── llm/
-│   ├── SYSTEM_PROMPT.md     # LLM instructions
-│   └── OPNSENSE_KNOWLEDGE.md # Reference material
+│   ├── SYSTEM_PROMPT.md         # LLM instructions
+│   └── OPNSENSE_KNOWLEDGE.md    # Reference material
 ├── docs/
 │   └── OPNsense_User_Guide.pdf
 └── src/
-    └── opnsense_user_guide.py  # PDF generator
+    └── opnsense_user_guide.py   # PDF generator
 ```
-
-## Related
-
-- [OPNsense MCP Server](https://github.com/vespo92/OPNsenseMCP) - The MCP server that provides the tools
-- [OPNsense](https://opnsense.org/) - The firewall itself
 
 ## License
 

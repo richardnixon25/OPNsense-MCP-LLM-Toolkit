@@ -1,0 +1,46 @@
+{
+  "comment": "Example configurations for Claude Desktop/Code - choose one option",
+  "option1_npx_recommended": {
+    "mcpServers": {
+      "opnsense": {
+        "command": "npx",
+        "args": ["--yes", "opnsense-mcp-server@latest"],
+        "env": {
+          "OPNSENSE_HOST": "https://192.168.1.1",
+          "OPNSENSE_API_KEY": "your_api_key_here",
+          "OPNSENSE_API_SECRET": "your_api_secret_here",
+          "OPNSENSE_VERIFY_SSL": "false"
+        }
+      }
+    }
+  },
+  "option2_local_install": {
+    "mcpServers": {
+      "opnsense": {
+        "command": "node",
+        "args": ["node_modules/opnsense-mcp-server/dist/index.js"],
+        "env": {
+          "OPNSENSE_HOST": "https://192.168.1.1",
+          "OPNSENSE_API_KEY": "your_api_key_here",
+          "OPNSENSE_API_SECRET": "your_api_secret_here",
+          "OPNSENSE_VERIFY_SSL": "false"
+        }
+      }
+    }
+  },
+  "option3_development": {
+    "mcpServers": {
+      "opnsense": {
+        "command": "node",
+        "args": ["dist/index.js"],
+        "cwd": "/absolute/path/to/opnsense-mcp",
+        "env": {
+          "OPNSENSE_HOST": "https://192.168.1.1",
+          "OPNSENSE_API_KEY": "your_api_key_here",
+          "OPNSENSE_API_SECRET": "your_api_secret_here",
+          "OPNSENSE_VERIFY_SSL": "false"
+        }
+      }
+    }
+  }
+}

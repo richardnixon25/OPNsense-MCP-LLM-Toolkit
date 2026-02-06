@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "opnsense": {
+      "command": "npx",
+      "args": ["--yes", "opnsense-mcp-server@latest"],
+      "env": {
+        "OPNSENSE_HOST": "https://your-opnsense-host.example.com",
+        "OPNSENSE_API_KEY": "your-api-key",
+        "OPNSENSE_API_SECRET": "your-api-secret",
+        "OPNSENSE_VERIFY_SSL": "true"
+      }
+    }
+  }
+}
