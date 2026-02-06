@@ -235,8 +235,22 @@ class IconBox(Flowable):
         self.box_height = 50
 
     def wrap(self, availWidth, availHeight):
-        # Calculate height based on text length
-        self.box_height = max(50, 30 + (len(self.text) // 60) * 15)
+        # Calculate height based on text length - allow up to 6 lines
+        words = self.text.split()
+        lines = []
+        current_line = ""
+        for word in words:
+            test_line = current_line + " " + word if current_line else word
+            if len(test_line) < 65:
+                current_line = test_line
+            else:
+                lines.append(current_line)
+                current_line = word
+        if current_line:
+            lines.append(current_line)
+        num_lines = min(len(lines), 6)  # Max 6 lines
+        self.box_height = max(50, 25 + num_lines * 14)
+        self._wrapped_lines = lines[:6]
         return (self.box_width, self.box_height)
 
     def draw(self):
@@ -270,22 +284,11 @@ class IconBox(Flowable):
         self.canv.setFillColor(OPNSENSE_DARK)
         self.canv.setFont("Helvetica", 10)
 
-        # Word wrap text
-        words = self.text.split()
-        lines = []
-        current_line = ""
-        for word in words:
-            test_line = current_line + " " + word if current_line else word
-            if len(test_line) < 65:
-                current_line = test_line
-            else:
-                lines.append(current_line)
-                current_line = word
-        if current_line:
-            lines.append(current_line)
+        # Use pre-wrapped lines from wrap() method
+        lines = getattr(self, "_wrapped_lines", [self.text])
 
-        y_pos = self.box_height - 22
-        for line in lines[:3]:  # Max 3 lines
+        y_pos = self.box_height - 20
+        for line in lines:
             self.canv.drawString(45, y_pos, line)
             y_pos -= 14
 
@@ -689,30 +692,30 @@ def build_document():
     story.append(ChapterHeader(1, "Introduction to OPNsense"))
     story.append(Spacer(1, 20))
 
+    # Introduction box and overview - keep together
     story.append(
-        IconBox(
-            "THIS GUIDE IS OPTIMIZED FOR LLM/AI AGENTS. It provides structured, concise reference "
-            "material for querying OPNsense configuration via MCP tools or API. Human-readable but "
-            "machine-parseable.",
-            "note",
+        KeepTogether(
+            [
+                IconBox(
+                    "THIS GUIDE IS OPTIMIZED FOR LLM/AI AGENTS. It provides structured, concise reference "
+                    "material for querying OPNsense configuration via MCP tools or API. Human-readable but "
+                    "machine-parseable.",
+                    "note",
+                ),
+                Spacer(1, 15),
+                Paragraph(
+                    "OPNsense is an open-source firewall and routing platform based on FreeBSD with HardenedBSD "
+                    "security enhancements. Core capabilities: stateful packet filtering (pf), NAT, VPN "
+                    "(IPsec/OpenVPN/WireGuard), IDS/IPS (Suricata), traffic shaping, and high availability (CARP).",
+                    styles["BodyText"],
+                ),
+            ]
         )
     )
-    story.append(Spacer(1, 15))
-
-    story.append(
-        Paragraph(
-            "OPNsense is an open-source firewall and routing platform based on FreeBSD with HardenedBSD "
-            "security enhancements. Core capabilities: stateful packet filtering (pf), NAT, VPN "
-            "(IPsec/OpenVPN/WireGuard), IDS/IPS (Suricata), traffic shaping, and high availability (CARP).",
-            styles["BodyText"],
-        )
-    )
 
     story.append(Spacer(1, 15))
-    story.append(
-        Paragraph("Quick Reference: OPNsense Fundamentals", styles["SectionTitle"])
-    )
 
+    # Quick Reference section - keep title with table
     fundamentals = [
         ["Concept", "Key Point"],
         [
@@ -733,11 +736,19 @@ def build_document():
         ["Config File", "XML at /conf/config.xml - never edit directly, use API/GUI"],
         ["API", "REST API on port 443, key+secret auth, /api/ endpoints"],
     ]
-    story.append(create_styled_table(fundamentals, [110, 330]))
+    story.append(
+        KeepTogether(
+            [
+                Paragraph(
+                    "Quick Reference: OPNsense Fundamentals", styles["SectionTitle"]
+                ),
+                create_styled_table(fundamentals, [110, 330]),
+            ]
+        )
+    )
     story.append(Spacer(1, 20))
 
-    story.append(Paragraph("Key Features", styles["SectionTitle"]))
-
+    # Key Features section - keep title with table
     features_data = [
         ["Feature", "Description", "Category"],
         ["Stateful Firewall", "Full packet inspection with state tracking", "Security"],
@@ -750,20 +761,31 @@ def build_document():
         ["Captive Portal", "Guest network authentication", "Access Control"],
     ]
 
-    story.append(create_styled_table(features_data, [120, 220, 100]))
+    story.append(
+        KeepTogether(
+            [
+                Paragraph("Key Features", styles["SectionTitle"]),
+                create_styled_table(features_data, [120, 220, 100]),
+            ]
+        )
+    )
     story.append(Spacer(1, 20))
 
-    story.append(Paragraph("Network Architecture Overview", styles["SectionTitle"]))
-    story.append(Spacer(1, 10))
-    story.append(NetworkDiagram())
-    story.append(Spacer(1, 15))
-
+    # Network Architecture section - keep title with diagram and description
     story.append(
-        Paragraph(
-            "OPNsense sits between your internal networks and the internet, providing security, "
-            "routing, and network services. It can manage multiple network segments (VLANs) and "
-            "apply different security policies to each zone.",
-            styles["BodyText"],
+        KeepTogether(
+            [
+                Paragraph("Network Architecture Overview", styles["SectionTitle"]),
+                Spacer(1, 10),
+                NetworkDiagram(),
+                Spacer(1, 15),
+                Paragraph(
+                    "OPNsense sits between your internal networks and the internet, providing security, "
+                    "routing, and network services. It can manage multiple network segments (VLANs) and "
+                    "apply different security policies to each zone.",
+                    styles["BodyText"],
+                ),
+            ]
         )
     )
 
@@ -775,8 +797,7 @@ def build_document():
     story.append(ChapterHeader(2, "Initial Setup & Installation"))
     story.append(Spacer(1, 20))
 
-    story.append(Paragraph("System Requirements", styles["SectionTitle"]))
-
+    # System Requirements section - keep title with table and tip
     requirements_data = [
         ["Component", "Minimum", "Recommended"],
         ["CPU", "1 GHz dual-core", "Multi-core 64-bit (AES-NI)"],
@@ -785,19 +806,22 @@ def build_document():
         ["Network", "2 NICs", "Intel NICs recommended"],
     ]
 
-    story.append(create_styled_table(requirements_data, [120, 150, 170]))
-    story.append(Spacer(1, 15))
-
     story.append(
-        IconBox(
-            "AES-NI support is highly recommended for VPN performance. Check CPU compatibility before deployment.",
-            "tip",
+        KeepTogether(
+            [
+                Paragraph("System Requirements", styles["SectionTitle"]),
+                create_styled_table(requirements_data, [120, 150, 170]),
+                Spacer(1, 15),
+                IconBox(
+                    "AES-NI support is highly recommended for VPN performance. Check CPU compatibility before deployment.",
+                    "tip",
+                ),
+            ]
         )
     )
     story.append(Spacer(1, 20))
 
-    story.append(Paragraph("Installation Steps", styles["SectionTitle"]))
-
+    # Installation Steps section - keep title with list
     steps = [
         "1. Download the latest OPNsense ISO from opnsense.org",
         "2. Create bootable USB using Rufus, Etcher, or dd command",
@@ -808,13 +832,13 @@ def build_document():
         "7. Complete initial setup wizard",
     ]
 
+    steps_content = [Paragraph("Installation Steps", styles["SectionTitle"])]
     for step in steps:
-        story.append(Paragraph(f"• {step}", styles["BulletText"]))
-
+        steps_content.append(Paragraph(f"• {step}", styles["BulletText"]))
+    story.append(KeepTogether(steps_content))
     story.append(Spacer(1, 15))
 
-    story.append(Paragraph("Post-Installation Checklist", styles["SubSection"]))
-
+    # Post-Installation Checklist - keep title with checklist
     checklist = [
         "Update to latest version (System → Firmware → Status)",
         "Configure WAN and LAN interfaces",
@@ -826,8 +850,10 @@ def build_document():
         "Configure backup schedule",
     ]
 
+    checklist_content = [Paragraph("Post-Installation Checklist", styles["SubSection"])]
     for item in checklist:
-        story.append(Paragraph(f"☐ {item}", styles["BulletText"]))
+        checklist_content.append(Paragraph(f"☐ {item}", styles["BulletText"]))
+    story.append(KeepTogether(checklist_content))
 
     story.append(PageBreak())
 
@@ -846,8 +872,8 @@ def build_document():
     )
 
     story.append(Spacer(1, 15))
-    story.append(Paragraph("Main Menu Structure", styles["SectionTitle"]))
 
+    # Main Menu Structure section - keep title with table
     menu_data = [
         ["Menu", "Primary Functions"],
         ["Lobby", "Dashboard, widgets, password management"],
@@ -860,17 +886,17 @@ def build_document():
         ["Diagnostics", "System tools, packet capture, ping"],
     ]
 
-    story.append(create_styled_table(menu_data, [100, 340]))
-    story.append(Spacer(1, 20))
-
-    story.append(Paragraph("Dashboard Widgets", styles["SubSection"]))
     story.append(
-        Paragraph(
-            "The dashboard is customizable with drag-and-drop widgets. Common widgets include:",
-            styles["BodyText"],
+        KeepTogether(
+            [
+                Paragraph("Main Menu Structure", styles["SectionTitle"]),
+                create_styled_table(menu_data, [100, 340]),
+            ]
         )
     )
+    story.append(Spacer(1, 20))
 
+    # Dashboard Widgets section - keep title with description and list
     widgets = [
         ("System Information", "CPU, memory, uptime, version"),
         ("Interfaces", "Interface status and traffic"),
@@ -880,8 +906,18 @@ def build_document():
         ("Firewall Logs", "Recent blocked/passed traffic"),
     ]
 
+    widgets_content = [
+        Paragraph("Dashboard Widgets", styles["SubSection"]),
+        Paragraph(
+            "The dashboard is customizable with drag-and-drop widgets. Common widgets include:",
+            styles["BodyText"],
+        ),
+    ]
     for name, desc in widgets:
-        story.append(Paragraph(f"• <b>{name}</b>: {desc}", styles["BulletText"]))
+        widgets_content.append(
+            Paragraph(f"• <b>{name}</b>: {desc}", styles["BulletText"])
+        )
+    story.append(KeepTogether(widgets_content))
 
     story.append(PageBreak())
 
@@ -902,19 +938,8 @@ def build_document():
     )
 
     story.append(Spacer(1, 15))
-    story.append(Paragraph("Rule Processing Order", styles["SectionTitle"]))
-    story.append(Spacer(1, 10))
-    story.append(FirewallRulesDiagram())
-    story.append(Spacer(1, 15))
 
-    story.append(
-        Paragraph(
-            "Rules are evaluated in a specific order based on their category and position. "
-            "Understanding this order is critical for troubleshooting:",
-            styles["BodyText"],
-        )
-    )
-
+    # Rule Processing Order section - keep diagram with explanation
     processing_data = [
         ["Priority", "Rule Type", "Description"],
         ["1", "Floating (quick)", "Processed first, can match any interface"],
@@ -922,20 +947,31 @@ def build_document():
         ["3", "Interface Rules", "Per-interface rules, most common type"],
         ["4", "Default Deny", "Implicit block if no rule matches"],
     ]
-    story.append(create_styled_table(processing_data, [60, 120, 260]))
-    story.append(Spacer(1, 15))
-
     story.append(
-        IconBox(
-            "By default, all rules have 'quick' enabled, meaning the first matching rule wins. "
-            "Without 'quick', the last matching rule would apply (rarely desired).",
-            "warning",
+        KeepTogether(
+            [
+                Paragraph("Rule Processing Order", styles["SectionTitle"]),
+                Spacer(1, 10),
+                FirewallRulesDiagram(),
+                Spacer(1, 15),
+                Paragraph(
+                    "Rules are evaluated in a specific order based on their category and position. "
+                    "Understanding this order is critical for troubleshooting:",
+                    styles["BodyText"],
+                ),
+                create_styled_table(processing_data, [60, 120, 260]),
+                Spacer(1, 15),
+                IconBox(
+                    "By default, all rules have 'quick' enabled, meaning the first matching rule wins. "
+                    "Without 'quick', the last matching rule would apply (rarely desired).",
+                    "warning",
+                ),
+            ]
         )
     )
     story.append(Spacer(1, 20))
 
-    story.append(Paragraph("Rule Actions Explained", styles["SectionTitle"]))
-
+    # Rule Actions section - keep title with table and explanation
     actions_data = [
         ["Action", "Network Response", "Best Use Case"],
         ["Pass", "Traffic allowed", "Explicitly permit desired traffic"],
@@ -946,39 +982,47 @@ def build_document():
             "LAN/internal - faster client feedback",
         ],
     ]
-    story.append(create_styled_table(actions_data, [70, 150, 220]))
-    story.append(Spacer(1, 15))
-
     story.append(
-        Paragraph(
-            "<b>Block vs Reject:</b> Use Block on WAN interfaces to avoid revealing firewall presence. "
-            "Use Reject on internal interfaces so clients receive immediate feedback rather than "
-            "waiting for connection timeout.",
-            styles["BodyText"],
+        KeepTogether(
+            [
+                Paragraph("Rule Actions Explained", styles["SectionTitle"]),
+                create_styled_table(actions_data, [70, 150, 220]),
+                Spacer(1, 15),
+                Paragraph(
+                    "<b>Block vs Reject:</b> Use Block on WAN interfaces to avoid revealing firewall presence. "
+                    "Use Reject on internal interfaces so clients receive immediate feedback rather than "
+                    "waiting for connection timeout.",
+                    styles["BodyText"],
+                ),
+            ]
         )
     )
 
     story.append(Spacer(1, 20))
-    story.append(Paragraph("Stateful Packet Inspection", styles["SectionTitle"]))
-    story.append(
-        Paragraph(
-            "OPNsense maintains a state table tracking all active connections. This provides:",
-            styles["BodyText"],
-        )
-    )
 
+    # Stateful Packet Inspection section - keep title with list
     state_benefits = [
         ("Performance", "Return traffic matched by state, not rule evaluation"),
         ("Security", "TCP sequence number validation prevents injection"),
         ("Simplicity", "Only need rules for initiating direction"),
         ("Tracking", "Connection limits, timeouts, and diagnostics"),
     ]
+    state_content = [
+        Paragraph("Stateful Packet Inspection", styles["SectionTitle"]),
+        Paragraph(
+            "OPNsense maintains a state table tracking all active connections. This provides:",
+            styles["BodyText"],
+        ),
+    ]
     for benefit, desc in state_benefits:
-        story.append(Paragraph(f"• <b>{benefit}</b>: {desc}", styles["BulletText"]))
+        state_content.append(
+            Paragraph(f"• <b>{benefit}</b>: {desc}", styles["BulletText"])
+        )
+    story.append(KeepTogether(state_content))
 
     story.append(Spacer(1, 15))
-    story.append(Paragraph("State Table Options", styles["SubSection"]))
 
+    # State Table Options - keep subtitle with table and tip
     state_opts = [
         ["Option", "Effect", "Use Case"],
         ["Keep State", "Normal stateful (default)", "Most traffic"],
@@ -986,30 +1030,24 @@ def build_document():
         ["Synproxy State", "Proxy TCP handshake", "Public servers (DDoS protection)"],
         ["No State", "Stateless rule", "High-volume UDP, broadcasts"],
     ]
-    story.append(create_styled_table(state_opts, [100, 150, 190]))
-
-    story.append(Spacer(1, 15))
     story.append(
-        IconBox(
-            "The state table size defaults to 1,000,000 entries. Monitor with 'pfctl -si' and "
-            "increase under Firewall > Settings > Advanced if needed for high-traffic environments.",
-            "tip",
+        KeepTogether(
+            [
+                Paragraph("State Table Options", styles["SubSection"]),
+                create_styled_table(state_opts, [100, 150, 190]),
+                Spacer(1, 15),
+                IconBox(
+                    "The state table size defaults to 1,000,000 entries. Monitor with 'pfctl -si' and "
+                    "increase under Firewall > Settings > Advanced if needed for high-traffic environments.",
+                    "tip",
+                ),
+            ]
         )
     )
 
     story.append(PageBreak())
 
-    # Firewall continued - Aliases
-    story.append(Paragraph("Aliases", styles["SectionTitle"]))
-    story.append(
-        Paragraph(
-            "Aliases are named groups of hosts, networks, ports, or URLs that simplify rule "
-            "management. When an alias is updated, all rules using it automatically reflect changes.",
-            styles["BodyText"],
-        )
-    )
-    story.append(Spacer(1, 10))
-
+    # Aliases section - keep title with description and table
     alias_data = [
         ["Type", "Content", "Example Values"],
         ["Hosts", "IPs or FQDNs", "10.0.0.5, server.example.com"],
@@ -1023,18 +1061,23 @@ def build_document():
         ["MAC Address", "Hardware addresses", "00:11:22:33:44:55"],
         ["External (advanced)", "pfTables via script", "Custom integrations"],
     ]
-    story.append(create_styled_table(alias_data, [110, 120, 210]))
-    story.append(Spacer(1, 15))
-
-    story.append(Paragraph("URL Table Aliases", styles["SubSection"]))
     story.append(
-        Paragraph(
-            "URL Tables fetch IP lists from remote sources, enabling integration with threat "
-            "intelligence feeds. Configure update frequency under the alias settings.",
-            styles["BodyText"],
+        KeepTogether(
+            [
+                Paragraph("Aliases", styles["SectionTitle"]),
+                Paragraph(
+                    "Aliases are named groups of hosts, networks, ports, or URLs that simplify rule "
+                    "management. When an alias is updated, all rules using it automatically reflect changes.",
+                    styles["BodyText"],
+                ),
+                Spacer(1, 10),
+                create_styled_table(alias_data, [110, 120, 210]),
+            ]
         )
     )
+    story.append(Spacer(1, 15))
 
+    # URL Table Aliases subsection - keep together
     url_examples = [
         ("Spamhaus DROP", "https://www.spamhaus.org/drop/drop.txt"),
         ("Firehol Level1", "https://iplists.firehol.org/files/firehol_level1.netset"),
@@ -1043,27 +1086,29 @@ def build_document():
             "https://rules.emergingthreats.net/fwrules/emerging-Block-IPs.txt",
         ),
     ]
+    url_content = [
+        Paragraph("URL Table Aliases", styles["SubSection"]),
+        Paragraph(
+            "URL Tables fetch IP lists from remote sources, enabling integration with threat "
+            "intelligence feeds. Configure update frequency under the alias settings.",
+            styles["BodyText"],
+        ),
+    ]
     for name, url in url_examples:
-        story.append(Paragraph(f"• <b>{name}</b>: {url}", styles["BulletText"]))
-
-    story.append(Spacer(1, 15))
-    story.append(
+        url_content.append(Paragraph(f"• <b>{name}</b>: {url}", styles["BulletText"]))
+    url_content.append(Spacer(1, 15))
+    url_content.append(
         IconBox(
             "Nest aliases within other aliases for complex rule sets. For example, create "
             "'INTERNAL_NETS' containing 'LAN_NET', 'DMZ_NET', and 'GUEST_NET' aliases.",
             "tip",
         )
     )
+    story.append(KeepTogether(url_content))
 
     story.append(Spacer(1, 20))
-    story.append(Paragraph("Rule Configuration Fields", styles["SectionTitle"]))
-    story.append(
-        Paragraph(
-            "Each firewall rule contains multiple fields controlling match criteria and behavior:",
-            styles["BodyText"],
-        )
-    )
 
+    # Rule Configuration Fields section - keep title with table
     rule_fields = [
         ["Field", "Options", "Notes"],
         ["Action", "Pass / Block / Reject", "What to do with matched traffic"],
@@ -1077,11 +1122,22 @@ def build_document():
         ["Log", "Enabled/Disabled", "Write to firewall log"],
         ["Category", "User-defined label", "Organize rules visually"],
     ]
-    story.append(create_styled_table(rule_fields, [100, 130, 210]))
+    story.append(
+        KeepTogether(
+            [
+                Paragraph("Rule Configuration Fields", styles["SectionTitle"]),
+                Paragraph(
+                    "Each firewall rule contains multiple fields controlling match criteria and behavior:",
+                    styles["BodyText"],
+                ),
+                create_styled_table(rule_fields, [100, 130, 210]),
+            ]
+        )
+    )
 
     story.append(Spacer(1, 20))
-    story.append(Paragraph("Advanced Rule Options", styles["SubSection"]))
 
+    # Advanced Rule Options - keep subsection with list
     advanced_opts = [
         ("Source Port", "Match originating port (rarely needed)"),
         ("Gateway", "Policy-based routing to specific gateway"),
@@ -1095,75 +1151,79 @@ def build_document():
         ("Allow Options", "Permit IP options (rarely needed)"),
         ("TCP Flags", "Match specific TCP flags"),
     ]
+    adv_content = [Paragraph("Advanced Rule Options", styles["SubSection"])]
     for opt, desc in advanced_opts:
-        story.append(Paragraph(f"• <b>{opt}</b>: {desc}", styles["BulletText"]))
+        adv_content.append(Paragraph(f"• <b>{opt}</b>: {desc}", styles["BulletText"]))
+    story.append(KeepTogether(adv_content))
 
     story.append(PageBreak())
 
-    # Firewall continued - Interface rules best practices
-    story.append(Paragraph("Interface Rules Best Practices", styles["SectionTitle"]))
+    # Interface Rules Best Practices - keep intro with warning
     story.append(
-        Paragraph(
-            "Rules are applied on the interface where traffic <b>enters</b> the firewall. "
-            "This is the most common source of confusion for new users.",
-            styles["BodyText"],
-        )
-    )
-    story.append(Spacer(1, 10))
-
-    story.append(
-        IconBox(
-            "Traffic FROM LAN TO WAN is filtered by LAN interface rules (inbound to firewall). "
-            "Traffic FROM WAN TO LAN is filtered by WAN interface rules.",
-            "warning",
+        KeepTogether(
+            [
+                Paragraph("Interface Rules Best Practices", styles["SectionTitle"]),
+                Paragraph(
+                    "Rules are applied on the interface where traffic <b>enters</b> the firewall. "
+                    "This is the most common source of confusion for new users.",
+                    styles["BodyText"],
+                ),
+                Spacer(1, 10),
+                IconBox(
+                    "Traffic FROM LAN TO WAN is filtered by LAN interface rules (inbound to firewall). "
+                    "Traffic FROM WAN TO LAN is filtered by WAN interface rules.",
+                    "warning",
+                ),
+            ]
         )
     )
     story.append(Spacer(1, 15))
 
-    story.append(Paragraph("LAN Rules Example", styles["SubSection"]))
-    story.append(
-        Paragraph(
-            "A typical LAN ruleset allowing internet access while blocking inter-VLAN traffic:",
-            styles["BodyText"],
-        )
-    )
-
+    # LAN Rules Example - keep subsection with table
     lan_rules = [
         ["#", "Action", "Source", "Destination", "Port", "Description"],
         ["1", "Pass", "LAN net", "LAN address", "443,22", "Access firewall GUI/SSH"],
         ["2", "Block", "LAN net", "RFC1918", "Any", "Block other internal nets"],
         ["3", "Pass", "LAN net", "Any", "Any", "Allow internet access"],
     ]
-    story.append(create_styled_table(lan_rules, [25, 50, 70, 80, 60, 155]))
-    story.append(Spacer(1, 15))
-
-    story.append(Paragraph("WAN Rules Example", styles["SubSection"]))
     story.append(
-        Paragraph(
-            "WAN interface typically has minimal rules - most traffic blocked by default. "
-            "Only add rules for explicitly exposed services:",
-            styles["BodyText"],
+        KeepTogether(
+            [
+                Paragraph("LAN Rules Example", styles["SubSection"]),
+                Paragraph(
+                    "A typical LAN ruleset allowing internet access while blocking inter-VLAN traffic:",
+                    styles["BodyText"],
+                ),
+                create_styled_table(lan_rules, [25, 50, 70, 80, 60, 155]),
+            ]
         )
     )
+    story.append(Spacer(1, 15))
 
+    # WAN Rules Example - keep subsection with table
     wan_rules = [
         ["#", "Action", "Source", "Destination", "Port", "Description"],
         ["1", "Pass", "Any", "WAN address", "443", "HTTPS to web server"],
         ["2", "Pass", "Any", "WAN address", "51820/UDP", "WireGuard VPN"],
         ["-", "Block", "Any", "Any", "Any", "(implicit default deny)"],
     ]
-    story.append(create_styled_table(wan_rules, [25, 50, 70, 80, 70, 145]))
-
-    story.append(Spacer(1, 20))
-    story.append(Paragraph("Floating Rules", styles["SectionTitle"]))
     story.append(
-        Paragraph(
-            "Floating rules apply across multiple interfaces and are processed before interface "
-            "rules. Use them for policies that span the entire firewall:",
-            styles["BodyText"],
+        KeepTogether(
+            [
+                Paragraph("WAN Rules Example", styles["SubSection"]),
+                Paragraph(
+                    "WAN interface typically has minimal rules - most traffic blocked by default. "
+                    "Only add rules for explicitly exposed services:",
+                    styles["BodyText"],
+                ),
+                create_styled_table(wan_rules, [25, 50, 70, 80, 70, 145]),
+            ]
         )
     )
 
+    story.append(Spacer(1, 20))
+
+    # Floating Rules section - keep title with description and list
     floating_uses = [
         "Block known-bad IPs on ALL interfaces",
         "Apply QoS/traffic shaping globally",
@@ -1171,28 +1231,29 @@ def build_document():
         "Quick deny rules that must match first",
         "Outbound direction filtering (rare)",
     ]
+    floating_content = [
+        Paragraph("Floating Rules", styles["SectionTitle"]),
+        Paragraph(
+            "Floating rules apply across multiple interfaces and are processed before interface "
+            "rules. Use them for policies that span the entire firewall:",
+            styles["BodyText"],
+        ),
+    ]
     for use in floating_uses:
-        story.append(Paragraph(f"• {use}", styles["BulletText"]))
-
-    story.append(Spacer(1, 15))
-    story.append(
+        floating_content.append(Paragraph(f"• {use}", styles["BulletText"]))
+    floating_content.append(Spacer(1, 15))
+    floating_content.append(
         IconBox(
             "Set 'Quick' on floating rules to stop processing immediately on match. Without "
             "'Quick', floating rules mark the packet but processing continues to interface rules.",
             "info",
         )
     )
+    story.append(KeepTogether(floating_content))
 
     story.append(Spacer(1, 20))
-    story.append(Paragraph("Viewing the Active Ruleset", styles["SectionTitle"]))
-    story.append(
-        Paragraph(
-            "The actual pf ruleset loaded in memory may differ from the GUI representation. "
-            "Always verify with CLI tools when troubleshooting:",
-            styles["BodyText"],
-        )
-    )
 
+    # Viewing the Active Ruleset section - keep title with commands
     pf_commands = [
         ("pfctl -sr", "Show all loaded rules"),
         ("pfctl -ss", "Show state table (active connections)"),
@@ -1200,13 +1261,22 @@ def build_document():
         ("pfctl -vvsr", "Verbose rules with hit counters"),
         ("cat /tmp/rules.debug", "View rules file before loading"),
     ]
+    pf_content = [
+        Paragraph("Viewing the Active Ruleset", styles["SectionTitle"]),
+        Paragraph(
+            "The actual pf ruleset loaded in memory may differ from the GUI representation. "
+            "Always verify with CLI tools when troubleshooting:",
+            styles["BodyText"],
+        ),
+    ]
     for cmd, desc in pf_commands:
-        story.append(
+        pf_content.append(
             Paragraph(
                 f"<font face='Courier' size='9'>{cmd}</font> - {desc}",
                 styles["BulletText"],
             )
         )
+    story.append(KeepTogether(pf_content))
 
     story.append(PageBreak())
 
@@ -1225,8 +1295,8 @@ def build_document():
     )
 
     story.append(Spacer(1, 15))
-    story.append(Paragraph("NAT Types", styles["SectionTitle"]))
 
+    # NAT Types section - keep title with table
     nat_data = [
         ["Type", "Direction", "Common Use"],
         ["Port Forward", "Inbound", "Expose internal services"],
@@ -1235,18 +1305,17 @@ def build_document():
         ["NPTv6", "IPv6", "IPv6 prefix translation"],
     ]
 
-    story.append(create_styled_table(nat_data, [120, 100, 220]))
-    story.append(Spacer(1, 20))
-
-    story.append(Paragraph("Port Forwarding", styles["SubSection"]))
     story.append(
-        Paragraph(
-            "Port forwarding (Destination NAT) redirects incoming traffic to internal hosts. "
-            "Essential fields include:",
-            styles["BodyText"],
+        KeepTogether(
+            [
+                Paragraph("NAT Types", styles["SectionTitle"]),
+                create_styled_table(nat_data, [120, 100, 220]),
+            ]
         )
     )
+    story.append(Spacer(1, 20))
 
+    # Port Forwarding subsection - keep with warning
     pf_fields = [
         ("Interface", "Usually WAN"),
         ("Protocol", "TCP, UDP, or both"),
@@ -1254,22 +1323,29 @@ def build_document():
         ("Redirect Target IP", "Internal host IP"),
         ("Redirect Target Port", "Internal port"),
     ]
-
+    pf_content = [
+        Paragraph("Port Forwarding", styles["SubSection"]),
+        Paragraph(
+            "Port forwarding (Destination NAT) redirects incoming traffic to internal hosts. "
+            "Essential fields include:",
+            styles["BodyText"],
+        ),
+    ]
     for field, desc in pf_fields:
-        story.append(Paragraph(f"• <b>{field}</b>: {desc}", styles["BulletText"]))
-
-    story.append(Spacer(1, 15))
-    story.append(
+        pf_content.append(Paragraph(f"• <b>{field}</b>: {desc}", styles["BulletText"]))
+    pf_content.append(Spacer(1, 15))
+    pf_content.append(
         IconBox(
             "NAT rules are processed BEFORE firewall rules. A port forward with 'Pass' association "
             "will bypass other firewall rules for that traffic.",
             "danger",
         )
     )
+    story.append(KeepTogether(pf_content))
 
     story.append(Spacer(1, 20))
-    story.append(Paragraph("Outbound NAT Modes", styles["SubSection"]))
 
+    # Outbound NAT Modes - keep subsection with table
     outbound_data = [
         ["Mode", "Description"],
         ["Automatic", "Default, auto-generates rules for all interfaces"],
@@ -1278,7 +1354,14 @@ def build_document():
         ["Disabled", "No outbound NAT (transparent bridge)"],
     ]
 
-    story.append(create_styled_table(outbound_data, [120, 320]))
+    story.append(
+        KeepTogether(
+            [
+                Paragraph("Outbound NAT Modes", styles["SubSection"]),
+                create_styled_table(outbound_data, [120, 320]),
+            ]
+        )
+    )
 
     story.append(Spacer(1, 20))
     story.append(Paragraph("Practical NAT Examples", styles["SectionTitle"]))
@@ -1483,9 +1566,7 @@ def build_document():
     )
     story.append(Spacer(1, 15))
 
-    # MCP NAT Tools Quick Reference
-    story.append(Paragraph("MCP NAT Tools Quick Reference", styles["SubSection"]))
-
+    # MCP NAT Tools Quick Reference - keep subsection with table
     mcp_nat_ref = [
         ["Task", "MCP Tool"],
         ["List port forwards", "opnsense_nat_list_port_forwards"],
@@ -1497,7 +1578,14 @@ def build_document():
         ["Analyze NAT config", "opnsense_nat_analyze_config"],
         ["Apply NAT changes", "opnsense_nat_apply_changes"],
     ]
-    story.append(create_styled_table(mcp_nat_ref, [150, 290]))
+    story.append(
+        KeepTogether(
+            [
+                Paragraph("MCP NAT Tools Quick Reference", styles["SubSection"]),
+                create_styled_table(mcp_nat_ref, [150, 290]),
+            ]
+        )
+    )
 
     story.append(PageBreak())
 
@@ -1520,8 +1608,7 @@ def build_document():
     story.append(VPNDiagram())
     story.append(Spacer(1, 20))
 
-    story.append(Paragraph("VPN Technology Comparison", styles["SectionTitle"]))
-
+    # VPN Technology Comparison - keep section with table
     vpn_data = [
         ["Feature", "IPsec", "OpenVPN", "WireGuard"],
         ["Best Use Case", "Site-to-Site", "Road Warriors", "Modern/Mobile"],
@@ -1532,22 +1619,18 @@ def build_document():
         ["Mobile Support", "Limited", "Good", "Excellent"],
         ["Interoperability", "Universal", "OpenVPN only", "WireGuard only"],
     ]
-    story.append(create_styled_table(vpn_data, [95, 95, 95, 95]))
-
-    story.append(Spacer(1, 20))
-    story.append(Paragraph("IPsec VPN", styles["SectionTitle"]))
     story.append(
-        Paragraph(
-            "IPsec is the industry standard for site-to-site VPNs, supported by virtually all "
-            "enterprise firewalls. OPNsense 23.1+ uses the modern swanctl/Connections interface "
-            "based on strongSwan's vici protocol.",
-            styles["BodyText"],
+        KeepTogether(
+            [
+                Paragraph("VPN Technology Comparison", styles["SectionTitle"]),
+                create_styled_table(vpn_data, [95, 95, 95, 95]),
+            ]
         )
     )
 
-    story.append(Spacer(1, 10))
-    story.append(Paragraph("IPsec Phases Explained", styles["SubSection"]))
+    story.append(Spacer(1, 20))
 
+    # IPsec VPN section - keep intro with phases table
     ipsec_phases = [
         ["Phase", "Purpose", "Key Settings"],
         [
@@ -1561,10 +1644,25 @@ def build_document():
             "Encryption, Hash, PFS Group, Lifetime",
         ],
     ]
-    story.append(create_styled_table(ipsec_phases, [80, 180, 180]))
+    story.append(
+        KeepTogether(
+            [
+                Paragraph("IPsec VPN", styles["SectionTitle"]),
+                Paragraph(
+                    "IPsec is the industry standard for site-to-site VPNs, supported by virtually all "
+                    "enterprise firewalls. OPNsense 23.1+ uses the modern swanctl/Connections interface "
+                    "based on strongSwan's vici protocol.",
+                    styles["BodyText"],
+                ),
+                Spacer(1, 10),
+                Paragraph("IPsec Phases Explained", styles["SubSection"]),
+                create_styled_table(ipsec_phases, [80, 180, 180]),
+            ]
+        )
+    )
     story.append(Spacer(1, 15))
 
-    story.append(Paragraph("Recommended Phase 1 Settings", styles["SubSection"]))
+    # Phase 1 Settings - keep subsection with table
     ph1_settings = [
         ["Setting", "Recommended Value", "Notes"],
         ["Key Exchange", "IKEv2", "More secure, faster than IKEv1"],
@@ -1574,10 +1672,17 @@ def build_document():
         ["Lifetime", "28800 seconds (8 hours)", "Balance security/overhead"],
         ["DPD", "Enabled, 10s interval", "Detect dead peers"],
     ]
-    story.append(create_styled_table(ph1_settings, [100, 130, 210]))
+    story.append(
+        KeepTogether(
+            [
+                Paragraph("Recommended Phase 1 Settings", styles["SubSection"]),
+                create_styled_table(ph1_settings, [100, 130, 210]),
+            ]
+        )
+    )
     story.append(Spacer(1, 15))
 
-    story.append(Paragraph("Recommended Phase 2 Settings", styles["SubSection"]))
+    # Phase 2 Settings - keep subsection with table and warning
     ph2_settings = [
         ["Setting", "Recommended Value", "Notes"],
         ["Encryption", "AES-256-GCM", "Match Phase 1"],
@@ -1586,14 +1691,18 @@ def build_document():
         ["Local Network", "LAN subnet", "What to encrypt"],
         ["Remote Network", "Remote LAN subnet", "Peer's protected network"],
     ]
-    story.append(create_styled_table(ph2_settings, [100, 130, 210]))
-
-    story.append(Spacer(1, 15))
     story.append(
-        IconBox(
-            "Both sides must have matching Phase 1 and Phase 2 settings. Mismatched "
-            "encryption, hash, or DH groups are the most common cause of tunnel failures.",
-            "warning",
+        KeepTogether(
+            [
+                Paragraph("Recommended Phase 2 Settings", styles["SubSection"]),
+                create_styled_table(ph2_settings, [100, 130, 210]),
+                Spacer(1, 15),
+                IconBox(
+                    "Both sides must have matching Phase 1 and Phase 2 settings. Mismatched "
+                    "encryption, hash, or DH groups are the most common cause of tunnel failures.",
+                    "warning",
+                ),
+            ]
         )
     )
 
@@ -1758,8 +1867,8 @@ def build_document():
     )
 
     story.append(Spacer(1, 15))
-    story.append(Paragraph("DNS Resolution Modes", styles["SectionTitle"]))
 
+    # DNS Resolution Modes - keep section with table and info box
     dns_modes = [
         ["Mode", "Behavior", "Privacy", "Speed"],
         [
@@ -1771,20 +1880,24 @@ def build_document():
         ["Forwarding", "Forward to upstream DNS", "Depends on upstream", "Faster"],
         ["DoT Forwarding", "Encrypted forwarding", "Good (encrypted)", "Moderate"],
     ]
-    story.append(create_styled_table(dns_modes, [90, 150, 110, 90]))
-    story.append(Spacer(1, 15))
-
     story.append(
-        IconBox(
-            "Recursive mode queries authoritative servers directly, eliminating reliance on "
-            "third-party DNS providers. Enable DNSSEC to validate responses cryptographically.",
-            "info",
+        KeepTogether(
+            [
+                Paragraph("DNS Resolution Modes", styles["SectionTitle"]),
+                create_styled_table(dns_modes, [90, 150, 110, 90]),
+                Spacer(1, 15),
+                IconBox(
+                    "Recursive mode queries authoritative servers directly, eliminating reliance on "
+                    "third-party DNS providers. Enable DNSSEC to validate responses cryptographically.",
+                    "info",
+                ),
+            ]
         )
     )
 
     story.append(Spacer(1, 20))
-    story.append(Paragraph("General Settings", styles["SectionTitle"]))
 
+    # General Settings - keep section with table
     unbound_settings = [
         ["Setting", "Recommended", "Notes"],
         ["Enable", "Checked", "Activate Unbound service"],
@@ -1796,19 +1909,18 @@ def build_document():
         ["Register Static Mappings", "Enabled", "Include DHCP static entries"],
         ["Local Zone Type", "Transparent", "Allow upstream for unknown local"],
     ]
-    story.append(create_styled_table(unbound_settings, [130, 100, 210]))
-
-    story.append(Spacer(1, 20))
-    story.append(Paragraph("DNS-over-TLS (DoT) Configuration", styles["SectionTitle"]))
     story.append(
-        Paragraph(
-            "DoT encrypts DNS queries to upstream servers, preventing eavesdropping and manipulation. "
-            "Configure under Services → Unbound DNS → DNS over TLS.",
-            styles["BodyText"],
+        KeepTogether(
+            [
+                Paragraph("General Settings", styles["SectionTitle"]),
+                create_styled_table(unbound_settings, [130, 100, 210]),
+            ]
         )
     )
-    story.append(Spacer(1, 10))
 
+    story.append(Spacer(1, 20))
+
+    # DoT Configuration - keep section with table and tip
     dot_providers = [
         ["Provider", "Server", "Port", "Hostname Verification"],
         ["Cloudflare", "1.1.1.1", "853", "cloudflare-dns.com"],
@@ -1816,33 +1928,44 @@ def build_document():
         ["Quad9", "9.9.9.9", "853", "dns.quad9.net"],
         ["Mullvad", "194.242.2.2", "853", "dns.mullvad.net"],
     ]
-    story.append(create_styled_table(dot_providers, [90, 90, 50, 210]))
-    story.append(Spacer(1, 15))
-
     story.append(
-        IconBox(
-            "Enable 'Use System Nameservers' under Query Forwarding and add DoT servers above. "
-            "The hostname verification ensures you're connecting to the legitimate server.",
-            "tip",
+        KeepTogether(
+            [
+                Paragraph("DNS-over-TLS (DoT) Configuration", styles["SectionTitle"]),
+                Paragraph(
+                    "DoT encrypts DNS queries to upstream servers, preventing eavesdropping and manipulation. "
+                    "Configure under Services → Unbound DNS → DNS over TLS.",
+                    styles["BodyText"],
+                ),
+                Spacer(1, 10),
+                create_styled_table(dot_providers, [90, 90, 50, 210]),
+                Spacer(1, 15),
+                IconBox(
+                    "Enable 'Use System Nameservers' under Query Forwarding and add DoT servers above. "
+                    "The hostname verification ensures you're connecting to the legitimate server.",
+                    "tip",
+                ),
+            ]
         )
     )
 
     story.append(Spacer(1, 20))
-    story.append(Paragraph("DNS Blocklists", styles["SectionTitle"]))
-    story.append(
-        Paragraph(
-            "Unbound can block domains using DNSBL (DNS Blocklist) feature, providing network-wide "
-            "ad blocking and malware protection without client-side software.",
-            styles["BodyText"],
-        )
-    )
-    story.append(Spacer(1, 10))
 
+    # DNS Blocklists - keep section with description
     blocklist_types = [
         ("Ads/Tracking", "Block advertising and analytics domains"),
         ("Malware", "Block known malicious domains"),
         ("Adult Content", "Family-safe filtering"),
         ("Custom", "Your own domain blacklist"),
+    ]
+    blocklist_content = [
+        Paragraph("DNS Blocklists", styles["SectionTitle"]),
+        Paragraph(
+            "Unbound can block domains using DNSBL (DNS Blocklist) feature, providing network-wide "
+            "ad blocking and malware protection without client-side software.",
+            styles["BodyText"],
+        ),
+        Spacer(1, 10),
     ]
     for btype, desc in blocklist_types:
         story.append(Paragraph(f"• <b>{btype}</b>: {desc}", styles["BulletText"]))
