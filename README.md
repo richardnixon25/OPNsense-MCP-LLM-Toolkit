@@ -2,6 +2,10 @@
 
 Configure your OPNsense firewall using natural language with any MCP-compatible LLM.
 
+<p align="center">
+  <img src="docs/images/cover.png" alt="OPNsense User Guide Cover" width="400"/>
+</p>
+
 ## What This Is
 
 A complete toolkit that lets you use Claude, Cursor, OpenCode, or other LLMs to configure OPNsense firewalls through conversation. Includes an enhanced MCP server with additional tools for WireGuard, PF states, gateways, and aliases.
@@ -12,6 +16,8 @@ A complete toolkit that lets you use Claude, Cursor, OpenCode, or other LLMs to 
 "Show me all firewall rules blocking traffic"
 "Check WireGuard tunnel status"
 ```
+
+---
 
 ## Quick Start
 
@@ -44,6 +50,27 @@ A complete toolkit that lets you use Claude, Cursor, OpenCode, or other LLMs to 
 
 **Full setup instructions:** [SETUP.md](SETUP.md)
 
+---
+
+## User Guide Preview
+
+The toolkit includes a comprehensive 78-page PDF guide covering everything from initial setup to advanced configurations.
+
+<p align="center">
+  <img src="docs/images/table-of-contents.png" alt="Table of Contents" width="45%"/>
+  <img src="docs/images/system-requirements.png" alt="System Requirements" width="45%"/>
+</p>
+
+<p align="center">
+  <img src="docs/images/firewall-rules.png" alt="Firewall Rules Documentation" width="60%"/>
+</p>
+
+<p align="center">
+  <a href="docs/OPNsense_User_Guide.pdf"><strong>Download Full PDF Guide</strong></a>
+</p>
+
+---
+
 ## What's Included
 
 | Directory/File | Purpose |
@@ -63,13 +90,15 @@ Enhanced from the base opnsense-mcp-server with:
 - **Alias tools** - Manage firewall aliases
 - **SSH support** - Direct CLI access for advanced operations
 
+---
+
 ## How It Works
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   You       │────▶│   LLM       │────▶│  OPNsense   │
+│   You       │────>│   LLM       │────>│  OPNsense   │
 │  (natural   │     │ (with MCP   │     │  (firewall) │
-│  language)  │◀────│  tools)     │◀────│             │
+│  language)  │<────│  tools)     │<────│             │
 └─────────────┘     └─────────────┘     └─────────────┘
                           │
                     MCP Server +
@@ -80,6 +109,8 @@ The LLM uses:
 - **MCP tools** to execute commands on OPNsense (API + SSH)
 - **Knowledge files** to understand OPNsense concepts and best practices
 - **System prompt** to follow safety guidelines (backup first, explain changes, etc.)
+
+---
 
 ## Requirements
 
@@ -101,10 +132,13 @@ OPNsense-MCP-LLM-Toolkit/
 │   ├── SYSTEM_PROMPT.md         # LLM instructions
 │   └── OPNSENSE_KNOWLEDGE.md    # Reference material
 ├── docs/
-│   └── OPNsense_User_Guide.pdf
+│   ├── OPNsense_User_Guide.pdf  # Full PDF guide
+│   └── images/                  # Preview images
 └── src/
     └── opnsense_user_guide.py   # PDF generator
 ```
+
+---
 
 ## License
 
